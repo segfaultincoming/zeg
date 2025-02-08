@@ -1,8 +1,8 @@
 const std = @import("std");
 const keys = @import("keys.zig");
 const cipher = @import("cipher_calc.zig");
-const allocator = std.heap.page_allocator;
-const print = std.debug.print;
+const cipher_structure = @import("cipher_structure.zig");
+const xor = @import("xor_decrypt.zig");
 
 pub const DecryptError = error{ ContentSizeMismatch, ChecksumMismatch, InvalidBlockSize };
 
@@ -30,14 +30,14 @@ pub fn decrypt(packet: []const u8, decrypt_keys: keys.Keys) ![]const u8 {
     const payload_offset = header_size - counter;
 
     const encrypted_packet = packet[header_size..];
-    var output = try allocator.alloc(u8, max_size);
-    const encrypted_blocks = try cipher.split_into_blocks(encrypted_packet, block_size.encrypted);
+    var output = try cipher_structure.block_alloc(u8, max_size);
+    const encrypted_blocks = try cipher_structure.split_into_blocks(encrypted_packet, block_size.encrypted);
 
     var block_offset: u32 = 0;
 
     for (encrypted_blocks) |encrypted_block| {
-        const unmasked_block: []u64 = try allocator.alloc(u64, block_size.unmasked);
-        const decrypted_block = try cipher.block_alloc(u64, block_size.decrypted);
+        const unmasked_block = try cipher_structure.block_alloc(u64, block_size.unmasked);
+        const decrypted_block = try cipher_structure.block_alloc(u64, block_size.decrypted);
 
         // Unmask the blocks
         {
@@ -92,7 +92,7 @@ pub fn decrypt(packet: []const u8, decrypt_keys: keys.Keys) ![]const u8 {
         }
 
         const block_suffix: [2]u8 = .{ encrypted_block[encrypted_block.len - 2], encrypted_block[encrypted_block.len - 1] };
-        const computed_block_size = cipher.get_block_size(block_suffix);
+        const computed_block_size = xor.get_block_size(block_suffix);
 
         // Verify the decryption
         {
@@ -100,7 +100,7 @@ pub fn decrypt(packet: []const u8, decrypt_keys: keys.Keys) ![]const u8 {
                 return error.InvalidBlockSize;
             }
 
-            const checksum: u64 = cipher.get_checksum(decrypted_block);
+            const checksum: u64 = xor.get_checksum(decrypted_block);
 
             if (block_suffix[1] != checksum) {
                 return error.ChecksumMismatch;
@@ -113,11 +113,6 @@ pub fn decrypt(packet: []const u8, decrypt_keys: keys.Keys) ![]const u8 {
             const output_slice = output[offset .. offset + block_size.decrypted];
 
             block_offset += computed_block_size;
-
-            // for (decrypted_block) |value| {
-            //     std.debug.print("0x{x:0>2} ", .{value});
-            // }
-            // std.debug.print("\n", .{});
 
             for (output_slice, 0..) |*value, i| {
                 value.* = if (i < decrypted_block.len) @intCast(decrypted_block[i]) else 0;
@@ -141,17 +136,7 @@ pub fn decrypt(packet: []const u8, decrypt_keys: keys.Keys) ![]const u8 {
         }
     }
 
-    // XOR Decrypt
-    {
-        var i = output.len - 1;
-
-        while (i > header_size) {
-            output[i] = output[i] ^ output[i - 1] ^ keys.xor32_keys[i % 32];
-            i -= 1;
-        }
-    }
-
-    return output;
+    return xor.decrypt(output, header_size);
 }
 
 test decrypt {
