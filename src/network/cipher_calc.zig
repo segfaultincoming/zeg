@@ -1,23 +1,9 @@
 const std = @import("std");
 const keys = @import("keys.zig");
+const CipherBlocks = @import("cipher_structure.zig").CipherBlocks;
 
 const bits_per_byte: u32 = 8;
 const bits_per_value: u32 = bits_per_byte * 2 + 2;
-
-pub const CipherBlocks = struct {
-    encrypted: u8,
-    decrypted: u8,
-    unmasked: u8,
-};
-
-pub const CipherVersion = enum(u16) { New, Old };
-
-pub fn get_block_sizes(version: CipherVersion) CipherBlocks {
-    return switch (version) {
-        CipherVersion.New => CipherBlocks{ .decrypted = 8, .encrypted = 11, .unmasked = 4 },
-        else => CipherBlocks{ .decrypted = 32, .encrypted = 38, .unmasked = 16 },
-    };
-}
 
 pub fn get_byte_offset(idx: usize) u4 {
     return @intCast(get_bit_index(idx) / bits_per_byte);
