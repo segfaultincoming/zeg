@@ -4,9 +4,10 @@ const net = std.net;
 const allocator = std.heap.page_allocator;
 
 const Packet = @import("../packets/out/packets.zig").Packet;
+const logger = @import("logger.zig");
 
 pub fn start() !void {
-    const server_addr = try std.net.Address.parseIp("192.168.0.182", 44405);
+    const server_addr = try net.Address.parseIp("192.168.0.182", 44405);
     const socket = try posix.socket(server_addr.any.family, posix.SOCK.STREAM, posix.IPPROTO.TCP);
     defer posix.close(socket);
 
@@ -39,7 +40,7 @@ pub fn start() !void {
         }
 
         const packet: []const u8 = buffer[0..read];
-        log_bytes(packet, LogType.RECEIVE);
+        logger.log_bytes(packet, logger.LogType.RECEIVE);
     }
 }
 
@@ -51,7 +52,7 @@ fn sendHello(socket: posix.socket_t) !void {
 fn write(socket: posix.socket_t, packet: []const u8) !void {
     var pos: usize = 0;
 
-    log_bytes(packet, LogType.SEND);
+    logger.log_bytes(packet, logger.LogType.SEND);
 
     while (pos < packet.len) {
         const written = try posix.write(socket, packet[pos..]);
@@ -61,16 +62,3 @@ fn write(socket: posix.socket_t, packet: []const u8) !void {
         pos += written;
     }
 }
-
-fn log_bytes(packet: []const u8, log_type: LogType) void {
-    std.debug.print("{s}: ", .{@tagName(log_type)});
-    for (packet) |value| {
-        std.debug.print("0x{x:0>2} ", .{value});
-    }
-    std.debug.print("\n", .{});
-}
-
-const LogType = enum(u1) {
-    SEND,
-    RECEIVE
-};
