@@ -1,7 +1,8 @@
 const std = @import("std");
+const PacketType= @import("../types.zig").PacketType;
 
 pub const Hello = extern struct {
-    header: u8 = 0xC1,
+    header: PacketType = PacketType.C1,
     size: u8 = 0x04,
     code: u8 = 0x00,
     sub_code: u8 = 0x01,

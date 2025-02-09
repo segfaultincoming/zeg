@@ -4,6 +4,8 @@ const net = std.net;
 const allocator = std.heap.page_allocator;
 
 const Packet = @import("../packets/out/packets.zig").Packet;
+const PacketType = @import("../packets/types.zig").PacketType;
+const ServerRequest = @import("../packets/in/servers_request.zig").ServersRequest;
 const logger = @import("logger.zig");
 
 pub fn start() !void {
@@ -40,7 +42,30 @@ pub fn start() !void {
         }
 
         const packet: []const u8 = buffer[0..read];
+        const header: PacketType = @enumFromInt(packet[0]);
+
         logger.log_bytes(packet, logger.LogType.RECEIVE);
+
+        switch (header) {
+            PacketType.C1 => {
+                const code = packet[2];
+                const sub_code = packet[3];
+
+                switch (code) {
+                    0xf4 => {
+                        switch (sub_code) {
+                            0x06 => ServerRequest.response(),
+                            else => continue
+                        }
+                    },
+                    else => continue
+                }
+
+            },
+            PacketType.C2 => {},
+            PacketType.C3 => {},
+            PacketType.C4 => {},
+        }
     }
 }
 
