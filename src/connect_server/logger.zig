@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const LogType = enum(u1) {
+pub const LogType = enum(u4) {
     SEND,
     RECEIVE
 };
