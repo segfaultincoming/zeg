@@ -4,13 +4,17 @@ const logger = @import("../logger.zig");
 const packets = @import("packets");
 const InPackets = @import("in/main.zig").Packets;
 const OutPackets = @import("out/main.zig");
-const ConnectServer = @import("../connect_server.zig").ConnectServer;
+const Context = @import("../context.zig").Context;
 
-pub fn handle_packets(
-    connect_server: ConnectServer,
-    client: std.posix.socket_t,
-    client_addr: std.net.Address,
-) !void {
+pub fn handle_packets(client: std.posix.socket_t, context: Context) void {
+    handle_packets_internal(client, context) catch |err| {
+        std.debug.print("ERR: Handle packets returned error: {}\n", .{err});
+    };
+}
+
+fn handle_packets_internal(client: std.posix.socket_t, context: Context) !void {
+    defer std.posix.close(client);
+
     const stream = std.net.Stream{ .handle = client };
 
     // Sending a Hello packet to the client will tell the game to start sending packets to the server
@@ -26,11 +30,14 @@ pub fn handle_packets(
         // 2. Read size (next 1 or 2 bytes)
         // 3. Read *size* more bytes
         const read = stream.read(&buffer) catch |err| {
-            std.debug.print("Client disconnected {} ({})\n", .{ client_addr, err });
+            std.debug.print(
+                "Client disconnected {} ({})\n",
+                .{ context.client_address, err },
+            );
             break;
         };
 
-        if (read == 0) {
+        if (read == 0 or read > buffer.len) {
             continue;
         }
 
@@ -44,7 +51,7 @@ pub fn handle_packets(
 
         const response = packets.handle(
             InPackets,
-            &connect_server,
+            &context.connect_server,
             packet,
         ) catch |err| {
             std.debug.print("Couldn't handle packet ({any}):\n{x:0>2}\n", .{ err, bytes });
