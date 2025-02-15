@@ -1,6 +1,4 @@
 const std = @import("std");
-const logger = @import("../logger.zig");
-
 const packets = @import("packets");
 const InPackets = @import("in/main.zig").Packets;
 const OutPackets = @import("out/main.zig");
@@ -58,6 +56,5 @@ pub fn handle_packets(client: std.posix.socket_t, context: Context) !void {
         }
 
         try stream.writeAll(response.packet);
-        logger.log_bytes(response.packet, logger.LogType.RESPONSE);
     }
 }

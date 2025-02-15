@@ -2,7 +2,6 @@ const std = @import("std");
 const posix = std.posix;
 const net = std.net;
 
-// TODO: Extract this into a module. Possibly reorganize the network one.
 pub const Server = struct {
     socket: posix.socket_t,
 

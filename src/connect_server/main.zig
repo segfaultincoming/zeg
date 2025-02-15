@@ -1,11 +1,11 @@
 const std = @import("std");
+const tcp = @import("tcp_server");
 
-const Server = @import("utils.zig").Server;
 const Context = @import("context.zig").Context;
 const ConnectServer = @import("connect_server.zig").ConnectServer;
 
 pub fn start() !void {
-    const server = Server.create("192.168.0.182", 44405) catch |err| {
+    const server = tcp.Server.create("192.168.0.182", 44405) catch |err| {
         std.debug.print("Couldn't bind to a socket. {}", .{err});
         return;
     };
