@@ -6,13 +6,7 @@ const InPackets = @import("in/main.zig").Packets;
 const OutPackets = @import("out/main.zig");
 const Context = @import("../context.zig").Context;
 
-pub fn handle_packets(client: std.posix.socket_t, context: Context) void {
-    handle_packets_internal(client, context) catch |err| {
-        std.debug.print("ERR: Handle packets returned error: {}\n", .{err});
-    };
-}
-
-fn handle_packets_internal(client: std.posix.socket_t, context: Context) !void {
+pub fn handle_packets(client: std.posix.socket_t, context: Context) !void {
     defer std.posix.close(client);
 
     const stream = std.net.Stream{ .handle = client };

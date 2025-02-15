@@ -1,47 +1,20 @@
 const std = @import("std");
-const gpa = std.heap.page_allocator;
-const server_types = @import("servers/types.zig");
-const ServerList = server_types.ServerList;
-
-pub fn get_server_list() !ServerList {
-    var serverList = ServerList{};
-
-    // TODO: This should not be hardcoded obviously
-    {
-        try serverList.append(gpa, .{
-            .id = 0,
-            .connections = 0,
-            .maxConnections = 200,
-            .load = 0,
-            .loadIndex = 0,
-            .endpoint = "192.168.0.182:55901",
-        });
-        try serverList.append(gpa, .{
-            .id = 1,
-            .connections = 0,
-            .maxConnections = 200,
-            .load = 0,
-            .loadIndex = 0,
-            .endpoint = "192.168.0.182:55901",
-        });
-        try serverList.append(gpa, .{
-            .id = 2,
-            .connections = 0,
-            .maxConnections = 200,
-            .load = 0,
-            .loadIndex = 0,
-            .endpoint = "192.168.0.182:55901",
-        });
-    }
-
-    return serverList;
-}
+const servers = @import("servers/main.zig");
+const Context = @import("context.zig").Context;
+const handler = @import("./packets/handler.zig").handle_packets;
 
 pub const ConnectServer = struct {
-    server_list: ServerList,
+    server_list: servers.ServerList,
+
     pub fn init() !ConnectServer {
         return ConnectServer{
-            .server_list = try get_server_list(),
+            .server_list = try servers.get_server_list(),
+        };
+    }
+
+    pub fn handle_packets(client: std.posix.socket_t, context: Context) void {
+        handler(client, context) catch |err| {
+            std.debug.print("ERR: Handle packets returned error: {}\n", .{err});
         };
     }
 };

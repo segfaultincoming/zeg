@@ -2,6 +2,7 @@ const std = @import("std");
 const posix = std.posix;
 const net = std.net;
 
+// TODO: Extract this into a module. Possibly reorganize the network one.
 pub const Server = struct {
     socket: posix.socket_t,
 
@@ -31,14 +32,18 @@ pub const Server = struct {
         return Server{ .socket = socket };
     }
 
-    pub fn accept(self: *const Server, address: *net.Address, flags: u32) !posix.socket_t {
+    pub fn accept(self: *const Server, address: *net.Address) !posix.socket_t {
         var address_length: posix.socklen_t = @sizeOf(net.Address);
 
         return try posix.accept(
             self.socket,
             &address.any,
             &address_length,
-            flags,
+            posix.SOCK.NONBLOCK,
         );
+    }
+
+    pub fn close(self: *const Server) void {
+        posix.close(self.socket);
     }
 };
