@@ -23,7 +23,7 @@ pub const Servers = struct {
     // NOTE: WIP, this is as beautiful as a road killed animal.
     pub fn to_client(self: *const Servers) ![]const u8 {
         const server_len: u16 = @intCast(self.server_list.len);
-        const server_count = try utils.split_into_bytes(u16, server_len);
+        const server_count = try utils.split_into_bytes(u16, server_len, .big);
 
         var servers = try utils.block_alloc(u8, server_len * 4);
         var server_idx: usize = 0;
@@ -32,8 +32,8 @@ pub const Servers = struct {
             self.server_list.items(.id),
             self.server_list.items(.load),
         ) |id, load| {
-            const id_u8 = try utils.split_into_bytes(u16, id);
-            const load_u8 = try utils.split_into_bytes(u16, load);
+            const id_u8 = try utils.split_into_bytes(u16, id, .little);
+            const load_u8 = try utils.split_into_bytes(u16, load, .little);
             servers[server_idx * 4 + 0] = id_u8[0];
             servers[server_idx * 4 + 1] = id_u8[1];
             servers[server_idx * 4 + 2] = load_u8[0];
@@ -45,7 +45,7 @@ pub const Servers = struct {
         // (header + u16 size + code + sub_code + u16 servers_count) + severs.len
         const servers_len: u16 = @intCast(servers.len);
         const packet_size: u16 = 7 + servers_len;
-        const size = try utils.split_into_bytes(u16, packet_size);
+        const size = try utils.split_into_bytes(u16, packet_size, .big);
 
         try response.append(@intFromEnum(self.header));
         try response.appendSlice(size);
