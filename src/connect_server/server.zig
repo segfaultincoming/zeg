@@ -1,12 +1,12 @@
 const std = @import("std");
+const packets = @import("../packets/main.zig");
+const InPackets = @import("./packets/in/main.zig").Packets;
+const OutPackets = @import("./packets/out/main.zig").Packets;
+const logger = @import("logger.zig");
+
 const posix = std.posix;
 const net = std.net;
 const allocator = std.heap.page_allocator;
-
-const Packet = @import("../packets/out/packets.zig").Packet;
-const PacketType = @import("../packets/types.zig").PacketType;
-const ServerRequest = @import("../packets/in/servers_request.zig").ServersRequest;
-const logger = @import("logger.zig");
 
 pub fn start() !void {
     const server_addr = try net.Address.parseIp("192.168.0.182", 44405);
@@ -15,7 +15,12 @@ pub fn start() !void {
 
     std.debug.print("Server listening on {}\n", .{server_addr});
 
-    try posix.setsockopt(socket, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
+    try posix.setsockopt(
+        socket,
+        posix.SOL.SOCKET,
+        posix.SO.REUSEADDR,
+        &std.mem.toBytes(@as(c_int, 1)),
+    );
     try posix.bind(socket, &server_addr.any, server_addr.getOsSockLen());
     try posix.listen(socket, 128);
 
@@ -23,7 +28,12 @@ pub fn start() !void {
         var client_addr: net.Address = undefined;
         var client_addr_len: posix.socklen_t = @sizeOf(net.Address);
 
-        const client = posix.accept(socket, &client_addr.any, &client_addr_len, posix.SOCK.NONBLOCK) catch |err| {
+        const client = posix.accept(
+            socket,
+            &client_addr.any,
+            &client_addr_len,
+            posix.SOCK.NONBLOCK,
+        ) catch |err| {
             std.debug.print("error accept: {}\n", .{err});
             continue;
         };
@@ -31,7 +41,7 @@ pub fn start() !void {
         std.debug.print("{} connected\n", .{client_addr});
         try sendHello(client);
 
-        var buffer: [128]u8 = undefined;
+        var buffer: [256]u8 = undefined;
         const read = posix.read(client, &buffer) catch |err| {
             std.debug.print("Client disconnected {}. Reason: {}\n", .{ client_addr, err });
             continue;
@@ -41,36 +51,21 @@ pub fn start() !void {
             continue;
         }
 
-        const packet: []const u8 = buffer[0..read];
-        const header: PacketType = @enumFromInt(packet[0]);
+        const bytes: []const u8 = buffer[0..read];
+        logger.log_bytes(bytes, logger.LogType.RECEIVE);
+        const packet = try packets.parse(bytes);
+        const response = try packets.handle(InPackets, packet);
 
-        logger.log_bytes(packet, logger.LogType.RECEIVE);
-
-        switch (header) {
-            PacketType.C1 => {
-                const code = packet[2];
-                const sub_code = packet[3];
-
-                switch (code) {
-                    0xf4 => {
-                        switch (sub_code) {
-                            0x06 => ServerRequest.response(),
-                            else => continue
-                        }
-                    },
-                    else => continue
-                }
-
-            },
-            PacketType.C2 => {},
-            PacketType.C3 => {},
-            PacketType.C4 => {},
+        switch (response) {
+            .Fail => std.debug.print("Package handling failed!", .{}),
+            .Success => std.debug.print("Package handling succeeded", .{}),
         }
     }
 }
 
+// TODO: This shouldn't a function here
 fn sendHello(socket: posix.socket_t) !void {
-    const hello_data = Packet{ .hello = .init() };
+    const hello_data = OutPackets{ .hello = .init() };
     try write(socket, hello_data.to_client());
 }
 

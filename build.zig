@@ -25,6 +25,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    exe.root_module.addImport("network", network);
+    exe.root_module.addImport("packets", packets);
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);

@@ -1,5 +1,3 @@
-const Hello = @import("./out/hello.zig").Hello;
-
 pub const PacketType = enum (u8){
     C1 = 0xC1,
     C2 = 0xC2,
@@ -13,10 +11,20 @@ pub const PacketHeader = struct {
     payload: []const u8,
 };
 
-pub const PacketCode = struct {
+pub const Packet = struct {
     type: PacketType,
     size: u32,
     code: u8,
     sub_code: u8,
     payload: []const u8,
 };
+
+pub const PacketResponse = enum {
+    Fail,
+    Success,
+};
+
+// NOTE: This might not be needed
+// pub const Packet = struct {
+//     process: fn (payload: []const u8) PacketResponse,
+// };

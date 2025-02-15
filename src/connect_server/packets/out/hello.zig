@@ -1,5 +1,5 @@
 const std = @import("std");
-const PacketType= @import("../types.zig").PacketType;
+const PacketType= @import("../../../packets/types.zig").PacketType;
 
 pub const Hello = extern struct {
     header: PacketType = PacketType.C1,
@@ -11,3 +11,4 @@ pub const Hello = extern struct {
         return Hello{};
     }
 };
+
