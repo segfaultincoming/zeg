@@ -7,9 +7,5 @@ pub const LogType = enum(u4) {
 };
 
 pub fn log_bytes(packet: []const u8, log_type: LogType) void {
-    std.debug.print("{s}: ", .{@tagName(log_type)});
-    for (packet) |value| {
-        std.debug.print("0x{x:0>2} ", .{value});
-    }
-    std.debug.print("\n", .{});
+    std.debug.print("{s}: {x:0>2}\n", .{@tagName(log_type), packet});
 }

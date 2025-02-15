@@ -1,13 +1,9 @@
 const std = @import("std");
-const logger = @import("logger.zig");
-const packets = @import("packets");
-const InPackets = @import("./packets/in/main.zig").Packets;
-const OutPackets = @import("./packets/out/main.zig");
 const ConnectServer = @import("connect_server.zig").ConnectServer;
+const handle_packets = @import("./packets/handler.zig").handle_packets;
 
 const posix = std.posix;
 const net = std.net;
-const allocator = std.heap.page_allocator;
 
 pub fn start() !void {
     const server_addr = try net.Address.parseIp("192.168.0.182", 44405);
@@ -53,42 +49,10 @@ pub fn start() !void {
 
         std.debug.print("{} connected\n", .{client_addr});
 
-        const stream = net.Stream{ .handle = client };
-
-        // Sendind a Hello packet to the client will tell the game to start sending packets to the server
-        const hello = OutPackets.Hello.init();
-        const hello_data = try hello.to_client();
-        try stream.writeAll(hello_data);
-
-        // Start reading incoming traffic
-        var buffer: [256]u8 = undefined;
-        const read = stream.read(&buffer) catch |err| {
-            std.debug.print(
-                "Client disconnected {}. Reason: {}\n",
-                .{ client_addr, err },
-            );
-            continue;
-        };
-
-        if (read == 0) {
-            continue;
-        }
-
-        const packet = try packets.parse(buffer[0..read]);
-        const response = packets.handle(
-            InPackets,
-            &connect_server,
-            packet,
-        ) catch |err| {
-            std.debug.print("Uknown packet {any}:\n{any}\n", .{ err, buffer });
-            continue;
-        };
-
-        switch (response.code) {
-            .Fail => std.debug.print("Package handling failed!\n", .{}),
-            .Success => std.debug.print("Package handling succeeded.\n", .{}),
-        }
-
-        try stream.writeAll(response.packet);
+        try handle_packets(
+            connect_server,
+            client,
+            client_addr,
+        );
     }
 }
