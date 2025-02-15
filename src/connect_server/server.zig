@@ -1,8 +1,9 @@
 const std = @import("std");
-const packets = @import("../packets/main.zig");
-const InPackets = @import("./packets/in/main.zig").Packets;
-const OutPackets = @import("./packets/out/main.zig").Packets;
 const logger = @import("logger.zig");
+const packets = @import("packets");
+const InPackets = @import("./packets/in/main.zig").Packets;
+const OutPackets = @import("./packets/out/main.zig");
+const ConnectServer = @import("connect_server.zig").ConnectServer;
 
 const posix = std.posix;
 const net = std.net;
@@ -24,6 +25,10 @@ pub fn start() !void {
     try posix.bind(socket, &server_addr.any, server_addr.getOsSockLen());
     try posix.listen(socket, 128);
 
+    const connect_server = ConnectServer.init() catch |err| {
+        return err;
+    };
+
     while (true) {
         var client_addr: net.Address = undefined;
         var client_addr_len: posix.socklen_t = @sizeOf(net.Address);
@@ -41,10 +46,9 @@ pub fn start() !void {
         std.debug.print("{} connected\n", .{client_addr});
 
         // Sendind a Hello packet to the client will tell the game to start sending packets to the server
-        try OutPackets.write(
-            client,
-            OutPackets{ .hello = .init() },
-        );
+        const hello = OutPackets.Hello.init();
+        const hello_data = try hello.to_client();
+        try OutPackets.write(client, hello_data);
 
         var buffer: [256]u8 = undefined;
         const read = posix.read(client, &buffer) catch |err| {
@@ -55,17 +59,25 @@ pub fn start() !void {
         if (read == 0) {
             continue;
         }
-
         const bytes: []const u8 = buffer[0..read];
-        const packet = try packets.parse(bytes);
-        const response = try packets.handle(InPackets, packet);
 
-        // NOTE: Debugging purposes
         logger.log_bytes(bytes, logger.LogType.RECEIVE);
+
+        const packet = try packets.parse(bytes);
+        const response = packets.handle(
+            InPackets,
+            &connect_server,
+            packet,
+        ) catch |err| {
+            std.debug.print("Uknown packet {any}:\n{any}\n", .{err, bytes});
+            continue;
+        };
 
         switch (response.code) {
             .Fail => std.debug.print("Package handling failed!\n", .{}),
-            .Success => std.debug.print("Package handling succeeded\n", .{}),
+            .Success => std.debug.print("Package handling succeeded.\n", .{}),
         }
+
+        try OutPackets.write(client, response.packet);
     }
 }

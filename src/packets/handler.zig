@@ -5,7 +5,11 @@ const PacketResponse = types.PacketResponse;
 const PacketType = types.PacketType;
 const Packet = types.Packet;
 
-pub fn handle_packet(comptime T: type, packet: Packet) !PacketResponse {
+pub fn handle_packet(
+    comptime T: type,
+    server: *const anyopaque,
+    packet: Packet,
+) !PacketResponse {
     const packets = @typeInfo(T).@"union";
 
     inline for (packets.fields) |field| {
@@ -30,7 +34,7 @@ pub fn handle_packet(comptime T: type, packet: Packet) !PacketResponse {
                 return error.PacketProcessorNotFound;
             }
 
-            return field.type.process(packet.payload);
+            return field.type.process(server, packet.payload);
         }
     }
 
@@ -43,7 +47,7 @@ test handle_packet {
         pub const code = 0xf4;
         pub const sub_code = 0x06;
 
-        pub fn process(_: [] u8) PacketResponse {
+        pub fn process(_: []u8) PacketResponse {
             return PacketResponse.Success;
         }
     };

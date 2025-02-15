@@ -1,5 +1,5 @@
 const std = @import("std");
-const PacketType= @import("../../../packets/types.zig").PacketType;
+const PacketType = @import("packets").types.PacketType;
 
 pub const Hello = extern struct {
     header: PacketType = PacketType.C1,
@@ -9,5 +9,19 @@ pub const Hello = extern struct {
 
     pub fn init() Hello {
         return Hello{};
+    }
+
+    pub fn to_client(self: *const Hello) ![]const u8 {
+        var bytes = std.ArrayList(u8).init(
+            std.heap.page_allocator,
+        );
+        defer bytes.deinit();
+
+        try bytes.append(@intFromEnum(self.header));
+        try bytes.append(self.size);
+        try bytes.append(self.code);
+        try bytes.append(self.sub_code);
+
+        return try bytes.toOwnedSlice();
     }
 };

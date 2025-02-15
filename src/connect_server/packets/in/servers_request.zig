@@ -1,5 +1,7 @@
 const std = @import("std");
-const types = @import("../../../packets/types.zig");
+const types = @import("packets").types;
+const ConnectServer = @import("../../connect_server.zig").ConnectServer;
+const OutPackets = @import("../out/main.zig");
 
 const PacketType = types.PacketType;
 const PacketResponse = types.PacketResponse;
@@ -10,7 +12,7 @@ pub const ServersRequest = struct {
     pub const code: u8 = 0xf4;
     pub const sub_code: u8 = 0x06;
 
-    pub fn process(payload: []const u8) PacketResponse {
+    pub fn process(server: *const anyopaque, payload: []const u8) !PacketResponse {
         if (payload.len > 0) {
             return PacketResponse{
                 .code = .Fail,
@@ -18,9 +20,13 @@ pub const ServersRequest = struct {
             };
         }
 
+        const connect_server: *const ConnectServer = @ptrCast(@alignCast(server));
+        const servers = OutPackets.Servers.init(connect_server.server_list);
+        const server_bytes = try servers.to_client();
+
         return PacketResponse{
             .code = .Success,
-            .packet = payload,
+            .packet = server_bytes,
         };
     }
 };

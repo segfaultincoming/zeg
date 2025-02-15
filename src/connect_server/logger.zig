@@ -2,7 +2,8 @@ const std = @import("std");
 
 pub const LogType = enum(u4) {
     SEND,
-    RECEIVE
+    RECEIVE,
+    RESPONSE,
 };
 
 pub fn log_bytes(packet: []const u8, log_type: LogType) void {
