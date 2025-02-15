@@ -11,4 +11,3 @@ pub const Hello = extern struct {
         return Hello{};
     }
 };
-

@@ -39,7 +39,12 @@ pub fn start() !void {
         };
 
         std.debug.print("{} connected\n", .{client_addr});
-        try sendHello(client);
+
+        // Sendind a Hello packet to the client will tell the game to start sending packets to the server
+        try OutPackets.write(
+            client,
+            OutPackets{ .hello = .init() },
+        );
 
         var buffer: [256]u8 = undefined;
         const read = posix.read(client, &buffer) catch |err| {
@@ -52,33 +57,15 @@ pub fn start() !void {
         }
 
         const bytes: []const u8 = buffer[0..read];
-        logger.log_bytes(bytes, logger.LogType.RECEIVE);
         const packet = try packets.parse(bytes);
         const response = try packets.handle(InPackets, packet);
 
-        switch (response) {
-            .Fail => std.debug.print("Package handling failed!", .{}),
-            .Success => std.debug.print("Package handling succeeded", .{}),
+        // NOTE: Debugging purposes
+        logger.log_bytes(bytes, logger.LogType.RECEIVE);
+
+        switch (response.code) {
+            .Fail => std.debug.print("Package handling failed!\n", .{}),
+            .Success => std.debug.print("Package handling succeeded\n", .{}),
         }
-    }
-}
-
-// TODO: This shouldn't a function here
-fn sendHello(socket: posix.socket_t) !void {
-    const hello_data = OutPackets{ .hello = .init() };
-    try write(socket, hello_data.to_client());
-}
-
-fn write(socket: posix.socket_t, packet: []const u8) !void {
-    var pos: usize = 0;
-
-    logger.log_bytes(packet, logger.LogType.SEND);
-
-    while (pos < packet.len) {
-        const written = try posix.write(socket, packet[pos..]);
-        if (written == 0) {
-            return error.Closed;
-        }
-        pos += written;
     }
 }

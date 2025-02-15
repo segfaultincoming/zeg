@@ -1,4 +1,4 @@
-pub const PacketType = enum (u8){
+pub const PacketType = enum(u8) {
     C1 = 0xC1,
     C2 = 0xC2,
     C3 = 0xC3,
@@ -19,9 +19,14 @@ pub const Packet = struct {
     payload: []const u8,
 };
 
-pub const PacketResponse = enum {
+pub const ResponseCode = enum {
     Fail,
     Success,
+};
+
+pub const PacketResponse = struct {
+    code: ResponseCode,
+    packet: []const u8,
 };
 
 // NOTE: This might not be needed
