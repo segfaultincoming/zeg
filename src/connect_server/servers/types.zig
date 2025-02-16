@@ -9,4 +9,4 @@ pub const ServerItem = struct {
     endpoint: [:0]const u8,
 };
 
-pub const ServerList = std.MultiArrayList(ServerItem);
+pub const Servers = std.MultiArrayList(ServerItem);

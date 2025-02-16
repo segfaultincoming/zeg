@@ -1,5 +1,7 @@
-const ServersRequest = @import("./servers_request.zig").ServersRequest;
+const ServerList = @import("./server_list.zig").ServerList;
+const ServerInfo = @import("./server_info.zig").ServerInfo;
 
 pub const Packets = union {
-    servers_request: ServersRequest,
+    server_list: ServerList,
+    server_info: ServerInfo,
 };

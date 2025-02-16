@@ -55,6 +55,9 @@ pub fn handle_packets(client: std.posix.socket_t, context: Context) !void {
             .Success => std.debug.print("Package handling succeeded.\n", .{}),
         }
 
-        try stream.writeAll(response.packet);
+        if (response.packet) |response_packet| {
+            try stream.writeAll(response_packet);
+            std.debug.print("Packet sent:\n{x:0>2}\n", .{response_packet});
+        }
     }
 }

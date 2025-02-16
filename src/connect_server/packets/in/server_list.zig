@@ -6,7 +6,7 @@ const OutPackets = @import("../out/main.zig");
 const PacketType = types.PacketType;
 const PacketResponse = types.PacketResponse;
 
-pub const ServersRequest = struct {
+pub const ServerList = struct {
     pub const header: PacketType = PacketType.C1;
     pub const size: u8 = 0x04;
     pub const code: u8 = 0xf4;
@@ -21,12 +21,12 @@ pub const ServersRequest = struct {
         }
 
         const connect_server: *const ConnectServer = @ptrCast(@alignCast(server));
-        const servers = OutPackets.Servers.init(connect_server.server_list);
-        const server_bytes = try servers.to_client();
+        const servers = OutPackets.ServerList.init(connect_server.server_list);
+        const packet = try servers.to_client();
 
         return PacketResponse{
             .code = .Success,
-            .packet = server_bytes,
+            .packet = packet,
         };
     }
 };

@@ -26,7 +26,7 @@ pub const ResponseCode = enum {
 
 pub const PacketResponse = struct {
     code: ResponseCode,
-    packet: []const u8,
+    packet: ?[]const u8,
 };
 
 // NOTE: This might not be needed

@@ -1,26 +1,24 @@
 const std = @import("std");
 const utils = @import("packets").utils;
 const PacketType = @import("packets").types.PacketType;
-const ServerList = @import("../../servers/types.zig").ServerList;
+const Servers = @import("../../servers/types.zig").Servers;
 
-pub const Servers = struct {
+pub const ServerList = struct {
     header: PacketType = PacketType.C2,
-    size: u16 = undefined,
     code: u8 = 0xF4,
     sub_code: u8 = 0x06,
-    server_list: ServerList,
+    server_list: Servers,
 
-    pub fn init(server_list: ServerList) Servers {
-        return Servers{
+    pub fn init(server_list: Servers) ServerList {
+        return ServerList{
             .header = PacketType.C2,
-            .size = 0x16,
             .code = 0xF4,
             .sub_code = 0x06,
             .server_list = server_list,
         };
     }
 
-    pub fn to_client(self: *const Servers) ![]const u8 {
+    pub fn to_client(self: *const ServerList) ![]const u8 {
         const server_count = try server_count_to_client(self);
         const servers = try server_list_to_client(self);
 
@@ -32,11 +30,11 @@ pub const Servers = struct {
         );
     }
 
-    fn server_count_to_client(self: *const Servers) ![]const u8 {
+    fn server_count_to_client(self: *const ServerList) ![]const u8 {
         return try utils.split_into_bytes(u16, @intCast(self.server_list.len), .big);
     }
 
-    fn server_list_to_client(self: *const Servers) ![]const u8 {
+    fn server_list_to_client(self: *const ServerList) ![]const u8 {
         var servers = try utils.block_alloc(u8, self.server_list.len * 4);
 
         var server_offset: usize = 0;

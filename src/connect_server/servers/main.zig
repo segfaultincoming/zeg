@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const ServerList = @import("types.zig").ServerList;
+pub const ServerList = @import("types.zig").Servers;
 
 pub fn get_server_list() !ServerList {
     const gpa = std.heap.page_allocator;
