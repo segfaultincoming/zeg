@@ -4,8 +4,9 @@ const net = std.net;
 
 pub const Server = struct {
     socket: posix.socket_t,
+    name: []const u8,
 
-    pub fn create(address: []const u8, port: u16) !Server {
+    pub fn create(name: []const u8, address: []const u8, port: u16) !Server {
         const server_addr = try net.Address.parseIp(address, port);
         const socket = try posix.socket(
             server_addr.any.family,
@@ -13,7 +14,7 @@ pub const Server = struct {
             posix.IPPROTO.TCP,
         );
 
-        std.debug.print("Server listening on {}\n", .{server_addr});
+        std.debug.print("[{s}] Server listening on {}\n", .{name, server_addr});
 
         try posix.setsockopt(
             socket,
@@ -28,7 +29,7 @@ pub const Server = struct {
         );
         try posix.listen(socket, 128);
 
-        return Server{ .socket = socket };
+        return Server{ .socket = socket, .name = name };
     }
 
     pub fn accept(self: *const Server, address: *net.Address) !posix.socket_t {

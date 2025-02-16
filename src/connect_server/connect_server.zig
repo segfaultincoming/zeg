@@ -14,7 +14,7 @@ pub const ConnectServer = struct {
 
     pub fn handle_packets(client: std.posix.socket_t, context: Context) void {
         handler(client, context) catch |err| {
-            std.debug.print("ERR: Handle packets returned error: {}\n", .{err});
+            std.debug.print("[ConnectServer] Handle packets returned error: {}\n", .{err});
         };
     }
 };

@@ -2,16 +2,16 @@ const std = @import("std");
 const tcp = @import("tcp_server");
 
 const Context = @import("context.zig").Context;
-const ConnectServer = @import("connect_server.zig").ConnectServer;
+const GameServer = @import("game_server.zig").GameServer;
 
 pub fn start() !void {
-    const server = tcp.Server.create("ConnectServer", "192.168.0.182", 44405) catch |err| {
-        std.debug.print("[ConnectServer] Couldn't bind to a socket. {}", .{err});
+    const server = tcp.Server.create("GameServer", "192.168.0.182", 55901) catch |err| {
+        std.debug.print("[GameServer] Couldn't bind to a socket. {}", .{err});
         return;
     };
     defer server.close();
 
-    const connect_server = ConnectServer.init() catch |err| {
+    const game_server = GameServer.init() catch |err| {
         return err;
     };
 
@@ -28,18 +28,18 @@ pub fn start() !void {
         var client_addr: std.net.Address = undefined;
 
         const client = server.accept(&client_addr) catch |err| {
-            std.debug.print("[ConnectServer] error accept: {}\n", .{err});
+            std.debug.print("[GameServer] error accept: {}\n", .{err});
             return;
         };
 
-        std.debug.print("[ConnectServer] {} connected\n", .{client_addr});
+        std.debug.print("[GameServer] {} connected\n", .{client_addr});
 
         const context = Context{
             .client_address = client_addr,
-            .connect_server = connect_server,
+            .game_server = game_server,
             .player = null,
         };
 
-        try pool.spawn(ConnectServer.handle_packets, .{ client, context });
+        try pool.spawn(GameServer.handle_packets, .{ client, context });
     }
 }

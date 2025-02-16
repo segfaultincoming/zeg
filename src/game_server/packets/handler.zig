@@ -9,10 +9,10 @@ pub fn handle_packets(client: std.posix.socket_t, context: Context) !void {
 
     const stream = std.net.Stream{ .handle = client };
 
-    // Sending a Hello packet to the client will tell the game to start sending packets to the server
-    const hello = OutPackets.Hello.init();
-    const hello_data = try hello.to_client();
-    try stream.writeAll(hello_data);
+    // Sending a ShowLogin packet to the client will tell the game to start sending packets to the server
+    const show_login = OutPackets.ShowLogin.init();
+    const show_login_data = try show_login.to_client();
+    try stream.writeAll(show_login_data);
 
     while (true) {
         var buffer: [256]u8 = undefined;
@@ -23,7 +23,7 @@ pub fn handle_packets(client: std.posix.socket_t, context: Context) !void {
         // 3. Read *size* more bytes
         const read = stream.read(&buffer) catch |err| {
             std.debug.print(
-                "[ConnectServer] Client disconnected {} ({})\n",
+                "[GameServer] Client disconnected {} ({})\n",
                 .{ context.client_address, err },
             );
             break;
@@ -37,27 +37,27 @@ pub fn handle_packets(client: std.posix.socket_t, context: Context) !void {
         const packet = try packets.parse(bytes);
 
         std.debug.print(
-            "[ConnectServer] Packet received: 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n",
+            "[GameServer] Packet received: 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n",
             .{ @intFromEnum(packet.type), packet.size, packet.code, packet.sub_code },
         );
 
         const response = packets.handle(
             InPackets,
-            &context.connect_server,
+            &context.game_server,
             packet,
         ) catch |err| {
-            std.debug.print("[ConnectServer] Couldn't handle packet ({any}):\n{x:0>2}\n", .{ err, bytes });
+            std.debug.print("[GameServer] Couldn't handle packet ({any}):\n{x:0>2}\n", .{ err, bytes });
             continue;
         };
 
         switch (response.code) {
-            .Fail => std.debug.print("[ConnectServer] Package handling failed!\n", .{}),
-            .Success => std.debug.print("[ConnectServer] Package handling succeeded.\n", .{}),
+            .Fail => std.debug.print("[GameServer] Package handling failed!\n", .{}),
+            .Success => std.debug.print("[GameServer] Package handling succeeded.\n", .{}),
         }
 
         if (response.packet) |response_packet| {
             try stream.writeAll(response_packet);
-            std.debug.print("[ConnectServer] Packet sent: {x:0>2}\n", .{response_packet});
+            std.debug.print("[GameServer] Packet sent: {x:0>2}\n", .{response_packet});
         }
     }
 }
