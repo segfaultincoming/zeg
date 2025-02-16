@@ -46,7 +46,10 @@ pub fn handle_packets(client: std.posix.socket_t, context: Context) !void {
             &context.game_server,
             packet,
         ) catch |err| {
-            std.debug.print("[GameServer] Couldn't handle packet ({any}):\n{x:0>2}\n", .{ err, bytes });
+            std.debug.print(
+                "[GameServer] Couldn't handle packet({any}): 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n",
+                .{ err, @intFromEnum(packet.type), packet.size, packet.code, packet.sub_code },
+            );
             continue;
         };
 

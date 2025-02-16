@@ -15,10 +15,7 @@ pub fn parse(bytes: []const u8) !Packet {
 
 pub fn header_parser(bytes: []const u8) !PacketHeader {
     const packetType: PacketType = @enumFromInt(bytes[0]);
-    const packet: []const u8 = switch (packetType) {
-        PacketType.C3, PacketType.C4 => try cipher.decrypt(bytes, keys.server_keys),
-        else => bytes,
-    };
+    const packet: []const u8 = try cipher.decrypt(bytes, keys.server_keys);
     const size = network.get_packet_size(packet);
     const payload = packet[network.get_header_size(packet)..];
 
