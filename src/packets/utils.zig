@@ -21,6 +21,16 @@ pub fn block_alloc(T: type, size: usize) ![]T {
     return try allocator.alloc(T, size);
 }
 
+pub fn block_alloc_zeroes(T: type, size: usize) ![]T {
+    const block = try allocator.alloc(T, size);
+
+    for (block) |*value| {
+        value.* = 0;
+    }
+
+    return block;
+}
+
 pub fn create_packet(
     packet_type: PacketType,
     code: u8,

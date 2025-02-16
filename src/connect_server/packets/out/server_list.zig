@@ -1,7 +1,7 @@
 const std = @import("std");
 const utils = @import("packets").utils;
 const PacketType = @import("packets").types.PacketType;
-const Servers = @import("../../servers/types.zig").Servers;
+const Servers = @import("../../config.zig").Servers;
 
 pub const ServerList = struct {
     header: PacketType = PacketType.C2,

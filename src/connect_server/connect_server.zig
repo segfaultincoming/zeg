@@ -1,14 +1,14 @@
 const std = @import("std");
-const servers = @import("servers/main.zig");
+const config = @import("config.zig");
 const Context = @import("context.zig").Context;
 const handler = @import("./packets/handler.zig").handle_packets;
 
 pub const ConnectServer = struct {
-    server_list: servers.ServerList,
+    server_list: config.Servers,
 
     pub fn init() !ConnectServer {
         return ConnectServer{
-            .server_list = try servers.get_server_list(),
+            .server_list = try config.get_server_list(),
         };
     }
 

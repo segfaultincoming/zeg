@@ -1,14 +1,27 @@
+///! TODO: Maybe extract this to a separate config module,
+/// so that everything is configured in one place?
 const std = @import("std");
 
-pub const ServerList = @import("types.zig").Servers;
+pub const ServerItem = struct {
+    id: u16,
+    connections: u8,
+    maxConnections: u8,
+    load: u16,
+    loadIndex: u8,
+    ip_address: [:0]const u8,
+    port: u16,
+};
 
-pub fn get_server_list() !ServerList {
+pub const Servers = std.MultiArrayList(ServerItem);
+
+pub fn get_server_list() !Servers {
     const gpa = std.heap.page_allocator;
-    var serverList = ServerList{};
+    var serverList = Servers{};
 
     // TODO: This should not be hardcoded obviously
     {
-        const endpoint = "192.168.0.182:55901";
+        const ip_address = "192.168.0.182";
+        const port: u16 = 55901;
 
         try serverList.append(gpa, .{
             .id = 0,
@@ -16,7 +29,8 @@ pub fn get_server_list() !ServerList {
             .maxConnections = 200,
             .load = 0,
             .loadIndex = 0,
-            .endpoint = endpoint,
+            .ip_address = ip_address,
+            .port = port,
         });
 
         try serverList.append(gpa, .{
@@ -25,7 +39,8 @@ pub fn get_server_list() !ServerList {
             .maxConnections = 200,
             .load = 0,
             .loadIndex = 0,
-            .endpoint = endpoint,
+            .ip_address = ip_address,
+            .port = port,
         });
 
         try serverList.append(gpa, .{
@@ -34,7 +49,8 @@ pub fn get_server_list() !ServerList {
             .maxConnections = 200,
             .load = 0,
             .loadIndex = 0,
-            .endpoint = endpoint,
+            .ip_address = ip_address,
+            .port = port,
         });
     }
 
