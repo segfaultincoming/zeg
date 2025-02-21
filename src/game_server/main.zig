@@ -44,7 +44,9 @@ fn create_context(self: *const tcp.Context, client_addr: std.net.Address) *const
 }
 
 fn handle_packets(server: *const tcp.Server, client: std.posix.socket_t, context: *const anyopaque) void {
-    handler(client, @ptrCast(@alignCast(context))) catch |err| {
-        std.debug.print("[{s}] ERR: Handle packets returned error: {}\n", .{server.name, err});
+    const server_context: *const Context = @ptrCast(@alignCast(context));
+
+    handler(client, server_context) catch |err| {
+        std.debug.print("[{s}] ERR: Handle packets returned error: {}\n", .{ server.name, err });
     };
 }

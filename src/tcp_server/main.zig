@@ -5,8 +5,8 @@ const net = std.net;
 
 pub const Context = struct {
     server: *const anyopaque,
-    create_context: fn (self: *const Context, client_addr: net.Address) *const anyopaque,
-    handle_packets: fn (server: *const Server, client: posix.socket_t, context: *const anyopaque) void,
+    create_context: *const fn (self: *const Context, client_addr: net.Address) *const anyopaque,
+    handle_packets: *const fn (server: *const Server, client: posix.socket_t, context: *const anyopaque) void,
 };
 
 pub const Server = struct {
@@ -42,11 +42,7 @@ pub const Server = struct {
         };
     }
 
-    pub fn listen(
-        self: *const Server,
-        server_context: Context,
-        pool: *std.Thread.Pool,
-    ) !void {
+    pub fn listen(self: *const Server, context: Context, pool: *std.Thread.Pool) !void {
         while (true) {
             var client_addr: std.net.Address = undefined;
             const client = self.accept(&client_addr) catch |err| {
@@ -54,8 +50,7 @@ pub const Server = struct {
                 return;
             };
             std.debug.print("[{s}] {} connected\n", .{ self.name, client_addr });
-            const context = server_context.create_context(&server_context, client_addr);
-            try pool.spawn(server_context.handle_packets, .{ self, client, context });
+            try pool.spawn(handle_packets, .{ self, client, client_addr, context });
         }
     }
 
@@ -72,5 +67,18 @@ pub const Server = struct {
 
     pub fn close(self: *const Server) void {
         posix.close(self.socket);
+    }
+
+    fn handle_packets(
+        server: *const Server,
+        client: posix.socket_t,
+        client_addr: net.Address,
+        context: Context,
+    ) void {
+        context.handle_packets(
+            server,
+            client,
+            context.create_context(&context, client_addr),
+        );
     }
 };

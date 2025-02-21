@@ -34,7 +34,8 @@ pub fn handle_packet(
                 return error.PacketProcessorNotFound;
             }
 
-            return field.type.process(server, packet.payload);
+            // TODO: Do we just pass the whole context?
+            return field.type.process(@ptrCast(@alignCast(server)), packet.payload);
         }
     }
 
