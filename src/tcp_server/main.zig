@@ -1,10 +1,17 @@
 const std = @import("std");
+const packets = @import("packets");
 const posix = std.posix;
 const net = std.net;
 
+pub const Context = struct {
+    server: *const anyopaque,
+    create_context: fn (self: *const Context, client_addr: net.Address) *const anyopaque,
+    handle_packets: fn (server: *const Server, client: posix.socket_t, context: *const anyopaque) void,
+};
+
 pub const Server = struct {
-    socket: posix.socket_t,
     name: []const u8,
+    socket: posix.socket_t,
 
     pub fn create(name: []const u8, address: []const u8, port: u16) !Server {
         const server_addr = try net.Address.parseIp(address, port);
@@ -14,7 +21,7 @@ pub const Server = struct {
             posix.IPPROTO.TCP,
         );
 
-        std.debug.print("[{s}] Server listening on {}\n", .{name, server_addr});
+        std.debug.print("[{s}] Server listening on {}\n", .{ name, server_addr });
 
         try posix.setsockopt(
             socket,
@@ -29,7 +36,27 @@ pub const Server = struct {
         );
         try posix.listen(socket, 128);
 
-        return Server{ .socket = socket, .name = name };
+        return Server{
+            .socket = socket,
+            .name = name,
+        };
+    }
+
+    pub fn listen(
+        self: *const Server,
+        server_context: Context,
+        pool: *std.Thread.Pool,
+    ) !void {
+        while (true) {
+            var client_addr: std.net.Address = undefined;
+            const client = self.accept(&client_addr) catch |err| {
+                std.debug.print("[{s}] error accept: {}\n", .{ self.name, err });
+                return;
+            };
+            std.debug.print("[{s}] {} connected\n", .{ self.name, client_addr });
+            const context = server_context.create_context(&server_context, client_addr);
+            try pool.spawn(server_context.handle_packets, .{ self, client, context });
+        }
     }
 
     pub fn accept(self: *const Server, address: *net.Address) !posix.socket_t {

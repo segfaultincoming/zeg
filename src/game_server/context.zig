@@ -3,7 +3,7 @@ const GameServer = @import("game_server.zig").GameServer;
 
 pub const Context = struct {
     client_address: std.net.Address,
-    game_server: GameServer,
+    game_server: *const GameServer,
     player: ?Player,
 };
 

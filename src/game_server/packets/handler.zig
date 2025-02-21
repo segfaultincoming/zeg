@@ -4,7 +4,7 @@ const InPackets = @import("in/main.zig").Packets;
 const OutPackets = @import("out/main.zig");
 const Context = @import("../context.zig").Context;
 
-pub fn handle_packets(client: std.posix.socket_t, context: Context) !void {
+pub fn handle_packets(client: std.posix.socket_t, context: *const Context) !void {
     defer std.posix.close(client);
 
     const stream = std.net.Stream{ .handle = client };
@@ -43,7 +43,7 @@ pub fn handle_packets(client: std.posix.socket_t, context: Context) !void {
 
         const response = packets.handle(
             InPackets,
-            &context.game_server,
+            context.game_server,
             packet,
         ) catch |err| {
             std.debug.print(

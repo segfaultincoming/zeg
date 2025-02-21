@@ -3,6 +3,7 @@ const tcp = @import("tcp_server");
 
 const Context = @import("context.zig").Context;
 const GameServer = @import("game_server.zig").GameServer;
+const handler = @import("./packets/handler.zig").handle_packets;
 
 pub fn start() !void {
     const server = tcp.Server.create("GameServer", "192.168.0.182", 55901) catch |err| {
@@ -24,22 +25,26 @@ pub fn start() !void {
     });
     defer std.Thread.Pool.deinit(&pool);
 
-    while (true) {
-        var client_addr: std.net.Address = undefined;
+    try server.listen(
+        tcp.Context{
+            .server = &game_server,
+            .create_context = create_context,
+            .handle_packets = handle_packets,
+        },
+        &pool,
+    );
+}
 
-        const client = server.accept(&client_addr) catch |err| {
-            std.debug.print("[GameServer] error accept: {}\n", .{err});
-            return;
-        };
+fn create_context(self: *const tcp.Context, client_addr: std.net.Address) *const anyopaque {
+    return &Context{
+        .client_address = client_addr,
+        .game_server = @ptrCast(@alignCast(self.server)),
+        .player = null,
+    };
+}
 
-        std.debug.print("[GameServer] {} connected\n", .{client_addr});
-
-        const context = Context{
-            .client_address = client_addr,
-            .game_server = game_server,
-            .player = null,
-        };
-
-        try pool.spawn(GameServer.handle_packets, .{ client, context });
-    }
+fn handle_packets(server: *const tcp.Server, client: std.posix.socket_t, context: *const anyopaque) void {
+    handler(client, @ptrCast(@alignCast(context))) catch |err| {
+        std.debug.print("[{s}] ERR: Handle packets returned error: {}\n", .{server.name, err});
+    };
 }
