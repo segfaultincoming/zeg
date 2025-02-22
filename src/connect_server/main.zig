@@ -1,9 +1,9 @@
 const std = @import("std");
 const tcp = @import("tcp_server");
 
-const Context = @import("context.zig").Context;
+const InPackets = @import("packets/in/main.zig").Packets;
+const OutPackets = @import("packets/out/main.zig");
 const ConnectServer = @import("connect_server.zig").ConnectServer;
-const handler = @import("./packets/handler.zig").handle_packets;
 
 pub fn start() !void {
     const server = tcp.Server.create("ConnectServer", "192.168.0.182", 44405) catch |err| {
@@ -28,25 +28,32 @@ pub fn start() !void {
     try server.listen(
         tcp.Context{
             .server = &connect_server,
-            .create_context = create_context,
             .handle_packets = handle_packets,
         },
         &pool,
     );
 }
 
-fn create_context(self: *const tcp.Context, client_addr: std.net.Address) *const anyopaque {
-    return &Context{
-        .client_address = client_addr,
-        .connect_server = @ptrCast(@alignCast(self.server)),
-        .player = null,
+fn handle_packets(server: *const tcp.Server, client: std.posix.socket_t, context: tcp.Context) void {
+    tcp.handler(
+        InPackets,
+        server,
+        client,
+        context,
+        .{ .init = handshake },
+    ) catch |err| {
+        std.debug.print("[{s}] ERR: Handle packets returned error: {}\n", .{ server.name, err });
     };
 }
 
-fn handle_packets(server: *const tcp.Server, client: std.posix.socket_t, context: *const anyopaque) void {
-    const server_context: *const Context = @ptrCast(@alignCast(context));
+fn handshake(stream: std.net.Stream) void {
+    const hello = OutPackets.Hello.init();
+    const hello_data = hello.to_client() catch |err| {
+        std.debug.print("Couldn't generate handshake: {}\n", .{err});
+        return;
+    };
 
-    handler(client, server_context) catch |err| {
-        std.debug.print("[{s}] ERR: Handle packets returned error: {}\n", .{ server.name, err });
+    stream.writeAll(hello_data) catch |err| {
+        std.debug.print("Couldn't send handshake: {}\n", .{err});
     };
 }

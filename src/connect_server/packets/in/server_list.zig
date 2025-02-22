@@ -1,12 +1,12 @@
 const std = @import("std");
 const types = @import("packets").types;
+const ServerList = @import("../out/main.zig").ServerList;
 const ConnectServer = @import("../../connect_server.zig").ConnectServer;
-const OutPackets = @import("../out/main.zig");
 
 const PacketType = types.PacketType;
 const PacketResponse = types.PacketResponse;
 
-pub const ServerList = struct {
+pub const ServerListSend = struct {
     pub const header: PacketType = PacketType.C1;
     pub const size: u8 = 0x04;
     pub const code: u8 = 0xf4;
@@ -20,7 +20,7 @@ pub const ServerList = struct {
             };
         }
 
-        const servers = OutPackets.ServerList.init(connect_server.server_list);
+        const servers = ServerList.init(connect_server.server_list);
         const packet = try servers.to_client();
 
         return PacketResponse{

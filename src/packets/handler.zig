@@ -7,7 +7,7 @@ const Packet = types.Packet;
 
 pub fn handle_packet(
     comptime T: type,
-    server: *const anyopaque,
+    context: *const anyopaque,
     packet: Packet,
 ) !PacketResponse {
     const packets = @typeInfo(T).@"union";
@@ -34,8 +34,7 @@ pub fn handle_packet(
                 return error.PacketProcessorNotFound;
             }
 
-            // TODO: Do we just pass the whole context?
-            return field.type.process(@ptrCast(@alignCast(server)), packet.payload);
+            return field.type.process(@ptrCast(@alignCast(context)), packet.payload);
         }
     }
 

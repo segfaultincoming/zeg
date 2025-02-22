@@ -5,12 +5,6 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     // Modules
-    const tcp_server = b.addModule("tcp_server", .{
-        .root_source_file = b.path("src/tcp_server/main.zig"),
-        .optimize = optimize,
-        .target = target,
-    });
-
     const network = b.addModule("network", .{
         .root_source_file = b.path("src/network/main.zig"),
         .optimize = optimize,
@@ -23,6 +17,13 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
     packets.addImport("network", network);
+
+    const tcp_server = b.addModule("tcp_server", .{
+        .root_source_file = b.path("src/tcp_server/main.zig"),
+        .optimize = optimize,
+        .target = target,
+    });
+    tcp_server.addImport("packets", packets);
 
     // Exe
     const exe = b.addExecutable(.{

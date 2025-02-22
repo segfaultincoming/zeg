@@ -1,12 +1,12 @@
 const std = @import("std");
 const types = @import("packets").types;
 const ConnectServer = @import("../../connect_server.zig").ConnectServer;
-const OutPackets = @import("../out/main.zig");
+const ServerInfo = @import("../out/main.zig").ServerInfo;
 
 const PacketType = types.PacketType;
 const PacketResponse = types.PacketResponse;
 
-pub const ServerInfo = struct {
+pub const ServerInfoSend = struct {
     pub const header: PacketType = PacketType.C1;
     pub const code: u8 = 0xf4;
     pub const sub_code: u8 = 0x03;
@@ -19,14 +19,15 @@ pub const ServerInfo = struct {
             };
         }
 
+        const server_list = connect_server.server_list;
         const server_id = std.mem.readInt(u16, payload[0..2], .little);
-        const server_idx: ?usize = for (connect_server.server_list.items(.id), 0..) |id, idx| {
+        const server_idx: ?usize = for (server_list.items(.id), 0..) |id, idx| {
             if (id != server_id) continue;
             break idx;
         } else null;
 
         if (server_idx) |idx| {
-            const server_info = OutPackets.ServerInfo.init(connect_server.server_list.get(idx));
+            const server_info = ServerInfo.init(server_list.get(idx));
             const packet = try server_info.to_client();
 
             return PacketResponse{
