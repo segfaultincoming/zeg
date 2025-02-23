@@ -28,8 +28,3 @@ pub const PacketResponse = struct {
     code: ResponseCode,
     packet: ?[]const u8,
 };
-
-// NOTE: This might not be needed
-// pub const Packet = struct {
-//     process: fn (payload: []const u8) PacketResponse,
-// };

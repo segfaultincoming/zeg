@@ -1,6 +1,21 @@
+const alloc = @import("cipher_structure.zig").block_alloc;
 const keys = @import("keys.zig");
 
-pub fn decrypt(packet: []u8, offset: u32) []u8 {
+pub fn decrypt_xor3(packet: []const u8) ![]u8 {
+    return encrypt_xor2(packet);
+}
+
+pub fn encrypt_xor2(packet: []const u8) ![]u8 {
+    const result = try alloc(u8, packet.len);
+
+    for (packet, 0..) |value, i| {
+        result[i] = value ^ keys.xor3_keys[i % 3];
+    }
+
+    return result;
+}
+
+pub fn decrypt_xor32(packet: []u8, offset: u32) []u8 {
     var i = packet.len - 1;
 
     while (i > offset) {

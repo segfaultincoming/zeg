@@ -1,0 +1,17 @@
+pub const LoginResult = enum(u8) {
+    InvalidPassword = 0,
+    Okay = 1,
+    AccountInvalid = 2,
+    AccountAlreadyConnected = 3,
+    ServerIsFull = 4,
+    AccountBlocked = 5,
+    WrongVersion = 6,
+    ConnectionError = 7,
+    ConnectionClosed3Fails = 8,
+    NoChargeInfo = 9,
+    SubscriptionTermOver = 10,
+    SubscriptionTimeOver = 11,
+    TemporaryBlocked = 14,
+    OnlyPlayersOver15Yrs = 17,
+    BadCountry = 210,
+};

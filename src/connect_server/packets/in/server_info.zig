@@ -1,17 +1,16 @@
 const std = @import("std");
-const types = @import("packets").types;
-const ConnectServer = @import("../../connect_server.zig").ConnectServer;
-const ServerInfo = @import("../out/main.zig").ServerInfo;
+const packets = @import("packets").types;
+const cs = @import("../../main.zig");
 
-const PacketType = types.PacketType;
-const PacketResponse = types.PacketResponse;
+const PacketType = packets.PacketType;
+const PacketResponse = packets.PacketResponse;
 
-pub const ServerInfoSend = struct {
+pub const ServerInfoRequest = struct {
     pub const header: PacketType = PacketType.C1;
     pub const code: u8 = 0xf4;
     pub const sub_code: u8 = 0x03;
 
-    pub fn process(connect_server: *const ConnectServer, payload: []const u8) !PacketResponse {
+    pub fn process(connect_server: *const cs.ConnectServer, payload: []const u8) !PacketResponse {
         if (payload.len != 2) {
             return PacketResponse{
                 .code = .Fail,
@@ -27,7 +26,7 @@ pub const ServerInfoSend = struct {
         } else null;
 
         if (server_idx) |idx| {
-            const server_info = ServerInfo.init(server_list.get(idx));
+            const server_info = cs.OutPackets.ServerInfo.init(server_list.get(idx));
             const packet = try server_info.to_client();
 
             return PacketResponse{

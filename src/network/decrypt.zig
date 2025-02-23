@@ -136,7 +136,7 @@ pub fn decrypt(packet: []const u8, decrypt_keys: keys.Keys) ![]const u8 {
         }
     }
 
-    return xor.decrypt(output, header_size);
+    return xor.decrypt_xor32(output, header_size);
 }
 
 test decrypt {
