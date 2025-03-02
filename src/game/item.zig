@@ -5,6 +5,7 @@ pub fn wearable(comptime TIdx: type) type {
         level: u3,
         excellent: bool,
         ancient: bool,
+        // TODO: Add JoL and Excellent options
     };
 }
 

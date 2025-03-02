@@ -28,14 +28,21 @@ pub fn header_parser(bytes: []const u8) !PacketHeader {
 
 pub fn packet_parser(packet: PacketHeader) Packet {
     const code = packet.payload[0];
-    const sub_code = packet.payload[1];
+    const sub_code = switch (packet.payload.len) {
+        1 => 0,
+        else => packet.payload[1]
+    };
+    const payload: [] const u8 = switch (packet.payload.len) {
+        1 => &[_]u8{},
+        else => packet.payload[2..]
+    };
 
     return Packet{
         .type = packet.type,
         .size = packet.size,
         .code = code,
         .sub_code = sub_code,
-        .payload = packet.payload[2..],
+        .payload = payload,
     };
 }
 
