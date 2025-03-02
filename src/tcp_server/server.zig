@@ -1,12 +1,13 @@
 const std = @import("std");
 const packets = @import("packets");
 const utils = @import("utils.zig");
+const Logger = @import("logger.zig").Logger;
 
 const posix = std.posix;
 const net = std.net;
 
 pub const Options = struct {
-    handshake: fn(stream: net.Stream) []const u8,
+    handshake: fn (stream: net.Stream) []const u8,
 };
 
 pub fn server(comptime T: type, comptime InPackets: type, options: Options) type {
@@ -15,6 +16,7 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
 
         name: []const u8,
         socket: posix.socket_t,
+        logger: Logger,
 
         pub const Context = struct {
             server: *const T,
@@ -27,8 +29,9 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
                 posix.SOCK.STREAM,
                 posix.IPPROTO.TCP,
             );
+            const logger = Logger{ .name = name };
 
-            std.debug.print("[{s}] Self listening on {}\n", .{ name, server_addr });
+            logger.info("Self listening on {}", .{ server_addr });
 
             try posix.setsockopt(socket, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
             try posix.bind(socket, &server_addr.any, server_addr.getOsSockLen());
@@ -37,17 +40,18 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
             return Self{
                 .socket = socket,
                 .name = name,
+                .logger = logger,
             };
         }
 
         pub fn listen(self: *const Self, context: Context, pool: *std.Thread.Pool) !void {
             while (true) {
-                var client_addr: std.net.Address = undefined;
+                var client_addr: net.Address = undefined;
                 const client = self.accept(&client_addr) catch |err| {
-                    std.debug.print("[{s}] error accept: {}\n", .{ self.name, err });
+                    self.logger.info("Failed to accept: {}", .{ err });
                     return;
                 };
-                std.debug.print("[{s}] {} connected\n", .{ self.name, client_addr });
+                self.logger.info("{} connected", .{ client_addr });
                 try pool.spawn(handle_packets_internal, .{ self, client, context });
             }
         }
@@ -62,21 +66,22 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
             posix.close(self.socket);
         }
 
-        fn handle_packets_internal(self: *const Self, client: std.posix.socket_t, context: Context) void {
+        fn handle_packets_internal(self: *const Self, client: posix.socket_t, context: Context) void {
             handle_packets(self, client, context) catch |err| {
-                std.debug.print("[{s}] ERR: Handle packets returned error: {}\n", .{ self.name, err });
+                self.logger.info("Packets handler failed: {}", .{ err });
             };
         }
 
-        fn handle_packets(self: *const Self, client: std.posix.socket_t, context: Context) !void {
-            defer std.posix.close(client);
+        fn handle_packets(self: *const Self, client: posix.socket_t, context: Context) !void {
+            defer posix.close(client);
 
-            const stream = std.net.Stream{ .handle = client };
+            const stream = net.Stream{ .handle = client };
+            const logger = self.logger;
             const client_address = try utils.get_client_address(client);
             const handshake_data = options.handshake(stream);
 
             stream.writeAll(handshake_data) catch |err| {
-                std.debug.print("[{s}] Error while sending handshake: {}\n", .{self.name, err});
+                logger.info("Error while sending handshake: {}", .{ err });
                 return;
             };
 
@@ -88,10 +93,7 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
                 // 2. Read size (next 1 or 2 bytes)
                 // 3. Read *size* more bytes
                 const read = stream.read(&buffer) catch |err| {
-                    std.debug.print(
-                        "[{s}] Client disconnected {} ({})\n",
-                        .{ self.name, client_address, err },
-                    );
+                    logger.info("Client disconnected {} ({})", .{ client_address, err });
                     break;
                 };
 
@@ -102,9 +104,9 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
                 const bytes = buffer[0..read];
                 const packet = try packets.parse(bytes);
 
-                std.debug.print(
-                    "[{s}] Packet received: 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n",
-                    .{ self.name, @intFromEnum(packet.type), packet.size, packet.code, packet.sub_code },
+                logger.info(
+                    "Packet received: 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}",
+                    .{ @intFromEnum(packet.type), packet.size, packet.code, packet.sub_code },
                 );
 
                 const response = packets.handle(
@@ -112,21 +114,21 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
                     context.server,
                     packet,
                 ) catch |err| {
-                    std.debug.print(
-                        "[{s}] Couldn't handle packet({any}): 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}\n",
-                        .{ self.name, err, @intFromEnum(packet.type), packet.size, packet.code, packet.sub_code },
+                    logger.info(
+                        "Couldn't handle packet({any}): 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}",
+                        .{ err, @intFromEnum(packet.type), packet.size, packet.code, packet.sub_code },
                     );
                     continue;
                 };
 
                 switch (response.code) {
-                    .Fail => std.debug.print("[{s}] Package handling failed!\n", .{self.name}),
-                    .Success => std.debug.print("[{s}] Package handling succeeded.\n", .{self.name}),
+                    .Fail => logger.info("Package handling failed!", .{}),
+                    .Success => logger.info("Package handling succeeded.", .{}),
                 }
 
                 if (response.packet) |response_packet| {
                     try stream.writeAll(response_packet);
-                    std.debug.print("[{s}] Packet sent: {x:0>2}\n", .{ self.name, response_packet });
+                    logger.info("Packet sent: {x:0>2}", .{ response_packet });
                 }
             }
         }

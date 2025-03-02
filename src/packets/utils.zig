@@ -1,7 +1,9 @@
 const std = @import("std");
 const network = @import("network");
-const PacketType = @import("types.zig").PacketType;
+const types = @import("types.zig");
 
+const PacketType = types.PacketType;
+const Packet = types.Packet;
 const mem = std.mem;
 const Endian = std.builtin.Endian;
 const allocator = std.heap.page_allocator;
