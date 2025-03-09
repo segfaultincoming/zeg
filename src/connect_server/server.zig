@@ -1,13 +1,13 @@
 const std = @import("std");
 const tcp = @import("tcp_server");
 
-const InPackets = @import("packets/in/main.zig").Packets;
-const OutPackets = @import("packets/out/main.zig");
+const Packets = @import("packets/in/main.zig").Packets;
+const Handshake = @import("packets/out/main.zig").Hello;
 const ConnectServer = @import("connect_server.zig").ConnectServer;
 
 const Server = tcp.server(
     ConnectServer,
-    InPackets,
+    Packets,
     .{
         .handshake = handshake,
         .disconnect = disconnect,
@@ -33,15 +33,11 @@ pub fn start() !void {
     try server.listen(&pool);
 }
 
-fn handshake(stream: std.net.Stream) []const u8 {
-    _ = stream;
-
-    return OutPackets.Hello.init().to_client() catch |err| {
+fn handshake(_: std.net.Stream) []const u8 {
+    return Handshake.init().to_client() catch |err| {
         std.debug.print("[ConnectServer] Error while creating handshake: {}\n", .{err});
         return &[_]u8{};
     };
 }
 
-fn disconnect(player_id: u64) void {
-    _ = player_id;
-}
+fn disconnect(_: tcp.ConnectionId) void {}

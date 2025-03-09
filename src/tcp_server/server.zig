@@ -1,7 +1,7 @@
 const std = @import("std");
 const packets = @import("packets");
 const utils = @import("utils.zig");
-const player = @import("player.zig");
+const connection = @import("connection.zig");
 const Logger = @import("logger.zig").Logger;
 
 const posix = std.posix;
@@ -76,11 +76,11 @@ pub fn server(comptime Server: type, comptime Packets: type, options: Options) t
             const stream = net.Stream{ .handle = client };
             const logger = self.logger;
             const client_address = try utils.get_client_address(client);
-            const player_id = try player.get_player_id(client_address);
+            const connection_id = try connection.get_id(client_address);
 
-            self.logger.info("Player ID: 0x{x}", .{player_id});
+            self.logger.info("Connection ID: 0x{x}", .{connection_id});
 
-            const context = Server.init(player_id);
+            const context = Server.init(connection_id);
 
             // Handshake
             {
@@ -100,7 +100,7 @@ pub fn server(comptime Server: type, comptime Packets: type, options: Options) t
                 // 2. Read size (next 1 or 2 bytes)
                 // 3. Read *size* more bytes
                 const read = stream.read(&buffer) catch |err| {
-                    options.disconnect(player_id);
+                    options.disconnect(connection_id);
                     logger.info("Client disconnected {} ({})", .{ client_address, err });
                     break;
                 };

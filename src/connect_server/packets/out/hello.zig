@@ -1,7 +1,7 @@
 const std = @import("std");
 const PacketType = @import("packets").types.PacketType;
 
-pub const Hello = extern struct {
+pub const Hello = struct {
     header: PacketType = PacketType.C1,
     size: u8 = 0x04,
     code: u8 = 0x00,

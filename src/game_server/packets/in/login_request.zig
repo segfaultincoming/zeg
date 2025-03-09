@@ -35,8 +35,13 @@ pub const LoginRequest = struct {
         const account = Game.Account{
             .name = username
         };
-        // TODO: Handle error set
-        try game_server.connect(account);
+
+        game_server.connect(account) catch |err| {
+            switch (err) {
+                error.AlreadyConnected => login_result = .AccountAlreadyConnected,
+                else => login_result = .ConnectionError,
+            }
+        };
 
         const response = gs.OutPackets.LoginResponse.init(login_result);
         const response_data = try response.to_client();

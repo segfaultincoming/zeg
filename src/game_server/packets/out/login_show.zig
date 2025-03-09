@@ -2,7 +2,7 @@ const std = @import("std");
 const utils = @import("packets").utils;
 const PacketType = @import("packets").types.PacketType;
 
-pub const LoginShow = extern struct {
+pub const LoginShow = struct {
     header: PacketType = PacketType.C1,
     code: u8 = 0xf1,
     sub_code: u8 = 0x00,
