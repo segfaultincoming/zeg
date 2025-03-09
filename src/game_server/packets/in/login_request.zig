@@ -1,6 +1,7 @@
 const std = @import("std");
 const decrypt = @import("network").xor.decrypt_xor3;
 const types = @import("packets").types;
+const Game = @import("game");
 const gs = @import("../../main.zig");
 
 const PacketType = types.PacketType;
@@ -21,9 +22,9 @@ pub const LoginRequest = struct {
 
         var login_result: gs.Enums.LoginResult = .Okay;
 
-        // NOTE: This is for testing purposes. rafa/123456
+        // NOTE: This is for testing purposes. rafa/rafa
         const username_temp = [10]u8{ 0x72, 0x61, 0x66, 0x61, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
-        const password_temp = [20]u8{ 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+        const password_temp = [20]u8{ 0x72, 0x61, 0x66, 0x61, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
         const username_matched = std.mem.eql(u8, username, username_temp[0..]);
         const password_matched = std.mem.eql(u8, password, password_temp[0..]);
 
@@ -31,10 +32,14 @@ pub const LoginRequest = struct {
             login_result = .AccountInvalid;
         }
 
+        const account = Game.Account{
+            .name = username
+        };
+        // TODO: Handle error set
+        try game_server.connect(account);
+
         const response = gs.OutPackets.LoginResponse.init(login_result);
         const response_data = try response.to_client();
-
-        _ = game_server;
 
         return PacketResponse{
             .code = .Success,

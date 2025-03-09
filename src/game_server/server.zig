@@ -8,7 +8,10 @@ const GameServer = @import("game_server.zig").GameServer;
 const Server = tcp.server(
     GameServer,
     InPackets,
-    .{ .handshake = handshake },
+    .{
+        .handshake = handshake,
+        .disconnect = disconnect
+    },
 );
 
 pub fn start() !void {
@@ -17,10 +20,6 @@ pub fn start() !void {
         return;
     };
     defer server.close();
-
-    const game_server = GameServer.init() catch |err| {
-        return err;
-    };
 
     var pool: std.Thread.Pool = undefined;
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -31,10 +30,7 @@ pub fn start() !void {
     });
     defer std.Thread.Pool.deinit(&pool);
 
-    try server.listen(
-        Server.Context{ .server = &game_server },
-        &pool,
-    );
+    try server.listen(&pool);
 }
 
 fn handshake(stream: std.net.Stream) []const u8 {
@@ -44,4 +40,9 @@ fn handshake(stream: std.net.Stream) []const u8 {
         std.debug.print("[GameServer] Error while creating handshake: {}\n", .{err});
         return &[_]u8{};
     };
+}
+
+fn disconnect(player_id: u64) void {
+    std.debug.print("[GameServer] Disconnecting 0x{x}\n", .{player_id});
+    GameServer.remove(player_id);
 }

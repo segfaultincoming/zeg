@@ -1,6 +1,7 @@
 const std = @import("std");
 const packets = @import("packets");
 const utils = @import("utils.zig");
+const player = @import("player.zig");
 const Logger = @import("logger.zig").Logger;
 
 const posix = std.posix;
@@ -8,19 +9,16 @@ const net = std.net;
 
 pub const Options = struct {
     handshake: fn (stream: net.Stream) []const u8,
+    disconnect: fn (player_id: u64) void, 
 };
 
-pub fn server(comptime T: type, comptime InPackets: type, options: Options) type {
+pub fn server(comptime Server: type, comptime Packets: type, options: Options) type {
     return struct {
         const Self = @This();
 
         name: []const u8,
         socket: posix.socket_t,
         logger: Logger,
-
-        pub const Context = struct {
-            server: *const T,
-        };
 
         pub fn create(name: []const u8, address: []const u8, port: u16) !Self {
             const server_addr = try net.Address.parseIp(address, port);
@@ -31,7 +29,7 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
             );
             const logger = Logger{ .name = name };
 
-            logger.info("Self listening on {}", .{ server_addr });
+            logger.info("Listening on {}", .{ server_addr });
 
             try posix.setsockopt(socket, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
             try posix.bind(socket, &server_addr.any, server_addr.getOsSockLen());
@@ -44,7 +42,7 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
             };
         }
 
-        pub fn listen(self: *const Self, context: Context, pool: *std.Thread.Pool) !void {
+        pub fn listen(self: *const Self, pool: *std.Thread.Pool) !void {
             while (true) {
                 var client_addr: net.Address = undefined;
                 const client = self.accept(&client_addr) catch |err| {
@@ -52,7 +50,7 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
                     return;
                 };
                 self.logger.info("{} connected", .{ client_addr });
-                try pool.spawn(handle_packets_internal, .{ self, client, context });
+                try pool.spawn(handle_packets_internal, .{ self, client });
             }
         }
 
@@ -66,24 +64,33 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
             posix.close(self.socket);
         }
 
-        fn handle_packets_internal(self: *const Self, client: posix.socket_t, context: Context) void {
-            handle_packets(self, client, context) catch |err| {
+        fn handle_packets_internal(self: *const Self, client: posix.socket_t) void {
+            handle_packets(self, client) catch |err| {
                 self.logger.info("Packets handler failed: {}", .{ err });
             };
         }
 
-        fn handle_packets(self: *const Self, client: posix.socket_t, context: Context) !void {
+        fn handle_packets(self: *const Self, client: posix.socket_t) !void {
             defer posix.close(client);
 
             const stream = net.Stream{ .handle = client };
             const logger = self.logger;
             const client_address = try utils.get_client_address(client);
-            const handshake_data = options.handshake(stream);
+            const player_id = try player.get_player_id(client_address);
 
-            stream.writeAll(handshake_data) catch |err| {
-                logger.info("Error while sending handshake: {}", .{ err });
-                return;
-            };
+            self.logger.info("Player ID: 0x{x}", .{player_id});
+
+            const context = Server.init(player_id);
+
+            // Handshake
+            {
+                const handshake_data = options.handshake(stream);
+
+                stream.writeAll(handshake_data) catch |err| {
+                    logger.info("Error while sending handshake: {}", .{ err });
+                    return;
+                };
+            }
 
             while (true) {
                 var buffer: [256]u8 = undefined;
@@ -93,6 +100,7 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
                 // 2. Read size (next 1 or 2 bytes)
                 // 3. Read *size* more bytes
                 const read = stream.read(&buffer) catch |err| {
+                    options.disconnect(player_id);
                     logger.info("Client disconnected {} ({})", .{ client_address, err });
                     break;
                 };
@@ -110,8 +118,8 @@ pub fn server(comptime T: type, comptime InPackets: type, options: Options) type
                 );
 
                 const response = packets.handle(
-                    InPackets,
-                    context.server,
+                    Packets,
+                    &context,
                     packet,
                 ) catch |err| {
                     logger.info(
