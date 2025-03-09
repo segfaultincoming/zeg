@@ -42,13 +42,17 @@ pub fn handle_packet(
 }
 
 test handle_packet {
+    const TestContext = struct {};
     const TestPacket = struct {
         pub const header = PacketType.C1;
         pub const code = 0xf4;
         pub const sub_code = 0x06;
 
-        pub fn process(_: []u8) PacketResponse {
-            return PacketResponse.Success;
+        pub fn process(_: *const TestContext, _: []const u8) PacketResponse {
+            return PacketResponse{
+                .code = .Success,
+                .packet = null,
+            };
         }
     };
     const TestPackets = union {
@@ -63,8 +67,9 @@ test handle_packet {
         .sub_code = 0x06,
         .payload = payload[0..],
     };
+    const context = TestContext{};
 
-    const response = try handle_packet(TestPackets, packet);
+    const response = try handle_packet(TestPackets, &context, packet);
 
-    try std.testing.expect(response == PacketResponse.Success);
+    try std.testing.expect(response.code == .Success);
 }

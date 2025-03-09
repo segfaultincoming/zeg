@@ -77,8 +77,14 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         });
-        // tcp_server_unit_tests.root_module.addImport("network", network);
         const run_tcp_server_unit_tests = b.addRunArtifact(tcp_server_unit_tests);
+
+        const game_unit_tests = b.addTest(.{
+            .root_source_file = b.path("src/game/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+        const run_game_unit_tests = b.addRunArtifact(game_unit_tests);
 
         const exe_unit_tests = b.addTest(.{
             .root_source_file = b.path("src/main.zig"),
@@ -92,6 +98,7 @@ pub fn build(b: *std.Build) void {
         test_step.dependOn(&run_network_unit_tests.step);
         test_step.dependOn(&run_packets_unit_tests.step);
         test_step.dependOn(&run_tcp_server_unit_tests.step);
+        test_step.dependOn(&run_game_unit_tests.step);
         test_step.dependOn(&run_exe_unit_tests.step);
     }
 }
