@@ -44,13 +44,13 @@ pub const Character = struct {
     guild_role: GuildRole,
 
     // Items
-    left_hand: Weapon,
-    right_hand: Weapon,
-    helm: Armor,
-    armor: Armor,
-    pants: Armor,
-    gloves: Armor,
-    boots: Armor,
-    wings: Wings,
-    pet: Pet,
+    left_hand: ?Weapon,
+    right_hand: ?Weapon,
+    helm: ?Armor,
+    armor: ?Armor,
+    pants: ?Armor,
+    gloves: ?Armor,
+    boots: ?Armor,
+    wings: ?Wings,
+    pet: ?Pet,
 };

@@ -1,5 +1,5 @@
 pub const Wearable = struct {
-    idx: u8,
+    id: u8,
     group: u8,
     level: u4,
     excellent: bool,
@@ -13,12 +13,12 @@ pub const Pet = struct {
 };
 
 pub const PetType = enum {
+    None,
     GuardianAngel,
     Imp,
     Unicorn,
     Dinorant,
     Fenrir,
-    None,
     PetPanda,
     PetUnicorn,
     Skeleton,
@@ -60,5 +60,6 @@ pub const WingsType = enum {
     CapeOfEmperor,
     WingOfDimension,
     CapeOfOverrule,
+    CloakOfWarrior,
     None,
 };
