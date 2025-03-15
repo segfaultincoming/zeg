@@ -1,3 +1,4 @@
+const mocks = @import("mocks/character.zig");
 const Character = @import("character.zig").Character;
 const pack = @import("appearance_packing.zig");
 const std = @import("std");
@@ -9,10 +10,9 @@ pub fn copy(buf: []u8, value: u8) void {
 pub const Appearance = struct {
     character: Character,
 
-    pub fn to_client(self: *const Appearance) ![]const u8 {
+    pub fn to_client(self: *const Appearance) ![18] u8 {
         const character = self.character;
-        const result = try std.heap.page_allocator.alloc(u8, 18);
-        for (result) |*value| value.* = 0;
+        var result = [_]u8{0} ** 18;
 
         const class_pose = @as(u8, @intFromEnum(character.class)) << 4 | @intFromEnum(character.pose);
         copy(result[0..1], class_pose);
@@ -55,83 +55,14 @@ pub const Appearance = struct {
 };
 
 test Appearance {
-    const character = Character{
-        // General
-        .name = "RaFa",
-        .class = .Todo,
-        .level = [2]u8{ 0x0, 0xFF },
-
-        // Stance
-        .slot = 0,
-        .pose = .Standing,
-
-        // Status
-        .status = .GameMaster,
-        .guild_role = .Member,
-
-        // Items
-        .left_hand = .{
-            .ancient = false,
-            .excellent = true,
-            .id = 0x00,
-            .group = 0x00,
-            .level = 0x0D,
-        },
-        .right_hand = .{
-            .ancient = false,
-            .excellent = true,
-            .id = 0x05,
-            .group = 0x00,
-            .level = 0x0D,
-        },
-        .helm = .{
-            .ancient = false,
-            .excellent = true,
-            .id = 0x06,
-            .group = 0x07,
-            .level = 0x0D,
-        },
-        .armor = .{
-            .ancient = false,
-            .excellent = true,
-            .id = 0x06,
-            .group = 0x08,
-            .level = 0x0D,
-        },
-        .pants = .{
-            .ancient = false,
-            .excellent = true,
-            .id = 0x06,
-            .group = 0x09,
-            .level = 0x0D,
-        },
-        .gloves = .{
-            .ancient = false,
-            .excellent = true,
-            .id = 0x06,
-            .group = 0x0A,
-            .level = 0x0D,
-        },
-        .boots = .{
-            .ancient = false,
-            .excellent = true,
-            .id = 0x06,
-            .group = 0x0B,
-            .level = 0x0D,
-        },
-        // .pet = null,
-        .pet = .{
-            .type = .Fenrir,
-            .flag = .None,
-        },
-        .wings = .{
-            .type = .WingsOfDragon,
-            .small = false,
-        },
+    const character = mocks.get_characters_mock()[0];
+    const appearance = Appearance{ .character = character };
+    const result = try appearance.to_client();
+    const expected = [18]u8{
+        0x30, 0x00, 0x05, 0x66, 0x66, 0x6b,
+        0xdb, 0x6d, 0xb0, 0x03, 0xfe, 0x00,
+        0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
     };
 
-    const appearance = Appearance{.character = character};
-    const result = try appearance.to_client();
-
-    std.debug.print("{x:0>2}\n", .{result});
+    try std.testing.expect(std.mem.eql(u8, &result, &expected));
 }

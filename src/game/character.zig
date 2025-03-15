@@ -1,4 +1,5 @@
 const std = @import("std");
+const Appearance = @import("appearance.zig").Appearance;
 const item = @import("item.zig");
 const Pet = item.Pet;
 const Weapon = item.Wearable;
@@ -33,7 +34,7 @@ pub const Character = struct {
     // General
     name: [:0]const u8,
     class: Class,
-    level: [2]u8,
+    level: u16,
 
     // Stance
     pose: Pose,
@@ -53,4 +54,9 @@ pub const Character = struct {
     boots: ?Armor,
     wings: ?Wings,
     pet: ?Pet,
+
+    pub fn get_appearance(self: *const Character) ![18]u8 {
+        const appearance = Appearance{ .character = self.* };
+        return try appearance.to_client();
+    }
 };

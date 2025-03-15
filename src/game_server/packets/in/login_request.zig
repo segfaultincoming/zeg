@@ -32,9 +32,7 @@ pub const LoginRequest = struct {
             login_result = .AccountInvalid;
         }
 
-        const account = Game.Account{
-            .name = username
-        };
+        const account = Game.Account.init(username);
 
         game_server.connect(account) catch |err| {
             switch (err) {
