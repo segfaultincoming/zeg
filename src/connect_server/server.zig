@@ -11,6 +11,7 @@ const Server = tcp.server(
     .{
         .handshake = handshake,
         .disconnect = disconnect,
+        .decrypt_c1_c2 = false,
     },
 );
 

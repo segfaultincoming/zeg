@@ -9,7 +9,8 @@ const net = std.net;
 
 pub const Options = struct {
     handshake: fn (stream: net.Stream) []const u8,
-    disconnect: fn (player_id: u64) void, 
+    disconnect: fn (player_id: u64) void,
+    decrypt_c1_c2: bool,
 };
 
 pub fn server(comptime Server: type, comptime Packets: type, options: Options) type {
@@ -29,7 +30,7 @@ pub fn server(comptime Server: type, comptime Packets: type, options: Options) t
             );
             const logger = Logger{ .name = name };
 
-            logger.info("Listening on {}", .{ server_addr });
+            logger.info("Listening on {}", .{server_addr});
 
             try posix.setsockopt(socket, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
             try posix.bind(socket, &server_addr.any, server_addr.getOsSockLen());
@@ -46,10 +47,10 @@ pub fn server(comptime Server: type, comptime Packets: type, options: Options) t
             while (true) {
                 var client_addr: net.Address = undefined;
                 const client = self.accept(&client_addr) catch |err| {
-                    self.logger.info("Failed to accept: {}", .{ err });
+                    self.logger.info("Failed to accept: {}", .{err});
                     return;
                 };
-                self.logger.info("{} connected", .{ client_addr });
+                self.logger.info("{} connected", .{client_addr});
                 try pool.spawn(handle_packets_internal, .{ self, client });
             }
         }
@@ -66,7 +67,7 @@ pub fn server(comptime Server: type, comptime Packets: type, options: Options) t
 
         fn handle_packets_internal(self: *const Self, client: posix.socket_t) void {
             handle_packets(self, client) catch |err| {
-                self.logger.info("Packets handler failed: {}", .{ err });
+                self.logger.info("Packets handler failed: {}", .{err});
             };
         }
 
@@ -87,7 +88,7 @@ pub fn server(comptime Server: type, comptime Packets: type, options: Options) t
                 const handshake_data = options.handshake(stream);
 
                 stream.writeAll(handshake_data) catch |err| {
-                    logger.info("Error while sending handshake: {}", .{ err });
+                    logger.info("Error while sending handshake: {}", .{err});
                     return;
                 };
             }
@@ -110,7 +111,7 @@ pub fn server(comptime Server: type, comptime Packets: type, options: Options) t
                 }
 
                 const bytes = buffer[0..read];
-                const packet = try packets.parse(bytes);
+                const packet = try packets.parse(bytes, options.decrypt_c1_c2);
 
                 logger.info(
                     "Packet received: 0x{x:0>2} 0x{x:0>2} 0x{x:0>2} 0x{x:0>2}",
@@ -136,7 +137,7 @@ pub fn server(comptime Server: type, comptime Packets: type, options: Options) t
 
                 if (response.packet) |response_packet| {
                     try stream.writeAll(response_packet);
-                    logger.info("Packet sent: {x:0>2}", .{ response_packet });
+                    logger.info("Packet sent: {x:0>2}", .{response_packet});
                 }
             }
         }

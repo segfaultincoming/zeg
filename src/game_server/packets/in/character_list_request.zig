@@ -9,7 +9,7 @@ const CharacterListResponse = gs.OutPackets.CharacterListResponse;
 pub const CharacterListRequest = struct {
     pub const header: PacketType = PacketType.C1;
     pub const code: u8 = 0xf3;
-    pub const sub_code: u8 = 0x0d;
+    pub const sub_code: u8 = 0x00;
 
     pub fn process(game_server: *const gs.GameServer, _: []const u8) !PacketResponse {
         const account = game_server.get_account() catch |err| {

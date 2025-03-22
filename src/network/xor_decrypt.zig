@@ -1,3 +1,4 @@
+const std = @import("std");
 const alloc = @import("cipher_structure.zig").block_alloc;
 const keys = @import("keys.zig");
 
@@ -36,4 +37,18 @@ pub fn get_checksum(block: []u64) u64 {
 
 pub fn get_block_size(block_suffix: [2]u8) u8 {
     return block_suffix[0] ^ block_suffix[1] ^ keys.block_size_xor_key;
+}
+
+test decrypt_xor32 {
+    var encrypted = [_]u8{
+        193, 14,  243, 24, 116, 50,  132,
+        83,  170, 169, 88, 208, 221, 186,
+    };
+    const decrypted = decrypt_xor32(encrypted[0..], 2);
+    const expected = [_]u8{
+        193, 14, 243, 21, 116, 101, 115,
+        116, 51, 48,  48, 68,  107, 0,
+    };
+
+    try std.testing.expect(std.mem.eql(u8, decrypted, &expected));
 }

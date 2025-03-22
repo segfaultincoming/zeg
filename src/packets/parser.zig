@@ -8,14 +8,14 @@ const PacketType = types.PacketType;
 const PacketHeader = types.PacketHeader;
 const Packet = types.Packet;
 
-pub fn parse(bytes: []const u8) !Packet {
-    const header = try header_parser(bytes);
+pub fn parse(bytes: []const u8, decrypt_c1_c2: bool) !Packet {
+    const header = try header_parser(bytes, decrypt_c1_c2);
     return packet_parser(header);
 }
 
-pub fn header_parser(bytes: []const u8) !PacketHeader {
+pub fn header_parser(bytes: []const u8, decrypt_c1_c2: bool) !PacketHeader {
     const packetType: PacketType = @enumFromInt(bytes[0]);
-    const packet: []const u8 = try cipher.decrypt(bytes, keys.server_keys);
+    const packet: []const u8 = try cipher.decrypt(bytes, keys.server_keys, decrypt_c1_c2);
     const size = network.get_packet_size(packet);
     const payload = packet[network.get_header_size(packet)..];
 
@@ -30,11 +30,11 @@ pub fn packet_parser(packet: PacketHeader) Packet {
     const code = packet.payload[0];
     const sub_code = switch (packet.payload.len) {
         1 => 0,
-        else => packet.payload[1]
+        else => packet.payload[1],
     };
-    const payload: [] const u8 = switch (packet.payload.len) {
+    const payload: []const u8 = switch (packet.payload.len) {
         1 => &[_]u8{},
-        else => packet.payload[2..]
+        else => packet.payload[2..],
     };
 
     return Packet{
@@ -48,7 +48,7 @@ pub fn packet_parser(packet: PacketHeader) Packet {
 
 test header_parser {
     const packet = [2]u8{ @intFromEnum(PacketType.C1), 0x04 };
-    const parsedPacket = try header_parser(packet[0..]);
+    const parsedPacket = try header_parser(packet[0..], false);
     try std.testing.expect(parsedPacket.type == PacketType.C1);
 }
 
