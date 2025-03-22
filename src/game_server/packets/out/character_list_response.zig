@@ -17,37 +17,33 @@ pub const CharacterListResponse = struct {
     }
 
     pub fn to_client(self: *const CharacterListResponse) ![]const u8 {
-        const characters = self.account.characters;
+        const account = self.account;
+        const characters = account.characters;
         const allocator = std.heap.page_allocator;
-        var characters_data = try allocator.alloc([34]u8, characters.len);
-
-        // | Index   | Length | Data Type         | Value | Description       |
-        // | ------- | ------ | ----------------- | ----- | ----------------- |
-        // | 0       | 1      | Byte              |       | SlotIndex         |
-        // | 1       | 10     | String            |       | Name              |
-        // | 12      | 2      | ShortLittleEndian |       | Level             |
-
-        // | 14      | 4 bit  | CharacterStatus   |       | Status            |
-        // | 14 << 4 | 1 bit  | Boolean           |       | IsItemBlockActive |
-        // | 15      | 18     | Binary            |       | Appearance        |
-        // | 33      | 1      | GuildMemberRole   |       | GuildPosition     |
+        var characters_data = try allocator.alloc(u8, characters.len * 34);
 
         for (characters, 0..) |character, idx| {
-            const slot = characters_data[idx][0..1];
-            const name = characters_data[idx][1..11];
-            const uknown = characters_data[idx][11..12];
-            const level = characters_data[idx][12..14];
-            const status = characters_data[idx][14..15];
-            const appearance = characters_data[idx][15..33];
-            const guild_position = characters_data[idx][33..34];
+            const offset = idx * 34;
+            const character_data = characters_data[offset..offset + 34];
+            const slot = character_data[0..1];
+            const name = character_data[1..11];
+            const uknown = character_data[11..12];
+            const level = character_data[12..14];
+            const status = character_data[14..15];
+            const appearance = character_data[15..33];
+            const guild_position = character_data[33..34];
 
+            const character_status = @intFromEnum(character.status) | (@as(u8, @intFromBool(character.item_block)) << 4);
             const level_bytes = try utils.split_into_bytes(u16, character.level, .little);
 
+            var name_buffer: [10]u8 = [_]u8{0} ** 10;
+            std.mem.copyForwards(u8, name_buffer[0..character.name.len], character.name);
+
             slot.* = .{character.slot};
-            name.* = .{0xFF} ** 10;
+            name.* = name_buffer;
             uknown.* = .{0x00};
             level.* = level_bytes[0..2].*;
-            status.* = .{0x77};
+            status.* = .{character_status};
             appearance.* = try character.get_appearance();
             guild_position.* = .{@intFromEnum(character.guild_role)};
         }
@@ -57,8 +53,13 @@ pub const CharacterListResponse = struct {
             self.code,
             self.sub_code,
             &.{
-                &.{0x00, 0x00, @intCast(characters.len), 0x00},
-                &characters_data[0],
+                &.{
+                    0x00,
+                    account.move_count,
+                    @intCast(characters.len),
+                    @intFromBool(account.vault_extended),
+                },
+                characters_data
             },
         );
     }
@@ -67,6 +68,13 @@ pub const CharacterListResponse = struct {
 test CharacterListResponse {
     const account = Game.Account.init(@constCast("rafa"));
     const packet = CharacterListResponse.init(account);
+    const result = try packet.to_client();
 
-    std.debug.print("{x:0>2}", .{try packet.to_client()});
+    try std.testing.expect(std.mem.eql(u8, result, &[_]u8{
+        0xc1, 0x2a, 0xf3, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+        0x52, 0x61, 0x46, 0x61, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x2c, 0x01, 0x00, 0x30, 0x00, 0x05, 0x66,
+        0x66, 0x6b, 0xdb, 0x6d, 0xb0, 0x03, 0xfe, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+    }));
 }

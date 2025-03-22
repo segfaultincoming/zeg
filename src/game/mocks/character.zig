@@ -12,8 +12,9 @@ pub fn get_characters_mock() []const Game.Character {
         .pose = .Standing,
 
         // Status
-        .status = .GameMaster,
-        .guild_role = .Member,
+        .item_block = false,
+        .status = .Normal,
+        .guild_role = .None,
 
         // Items
         .left_hand = .{

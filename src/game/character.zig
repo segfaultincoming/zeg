@@ -20,8 +20,10 @@ pub const Pose = enum(u4) {
 };
 
 pub const GuildRole = enum(u8) {
-    None = 0,
-    Member = 1,
+    Member = 0,
+    BattleMaster = 32,
+    Guildmaster = 128,
+    None = 255,
 };
 
 pub const Status = enum(u8) {
@@ -41,6 +43,7 @@ pub const Character = struct {
     slot: u8,
 
     // Status
+    item_block: bool,
     status: Status,
     guild_role: GuildRole,
 
