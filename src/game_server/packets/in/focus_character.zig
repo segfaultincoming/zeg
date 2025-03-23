@@ -1,4 +1,3 @@
-
 const std = @import("std");
 const types = @import("packets").types;
 const Game = @import("game");
@@ -12,15 +11,14 @@ pub const FocusCharacter = struct {
     pub const code: u8 = 0xf3;
     pub const sub_code: u8 = 0x15;
 
-    pub fn process(game_server: *const gs.GameServer, payload: []const u8) !PacketResponse {
-        const username = payload[0..10];
-
-        _ = username;
-        _ = game_server;
+    pub fn process(_: *const gs.GameServer, payload: []const u8) !PacketResponse {
+        const character_name = payload[0..10];
+        const response = gs.OutPackets.CharacterFocused.init(character_name);
+        const response_data = try response.to_client();
 
         return PacketResponse{
             .code = .Success,
-            .packet = null,
+            .packet = response_data,
         };
     }
 };
